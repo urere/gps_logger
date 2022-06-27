@@ -18,15 +18,21 @@
 #define RED_LED 13
 #define GREEN_LED 8
 
+// Display constants
+#define DISPLAY_SOG 1
+#define DISPLAY_TIME_TO_LOG 2
+
 // Global variables
 Adafruit_GPS gps(&GPS_SERIAL);
 Adafruit_SSD1306 display = Adafruit_SSD1306(128, 32, &DISPLAY_WIRE);
-uint32_t displayTimer = millis();
-uint32_t loggingTimer = millis();
+unsigned long displayTimer = millis();
+unsigned long loggingTimer = millis();
 bool sdCardAvailable = false;
+bool gotFix = false;
 char *lastRMC = NULL;
 bool gotLogFileName = false;
 char logFileName[13];
+int displayMode = DISPLAY_SOG;
 
 void setup()
 {
@@ -111,8 +117,21 @@ void gpsUpdate() {
       // Need to store the last RMS sentance so it can be logged
       if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
         lastRMC = gps.lastNMEA();
-      }  
-    }      
+      }
+
+      if ( !gotFix ) {
+        // Just got a fix so restart the logging timer
+        gotFix = true;
+        loggingTimer = millis();
+      }
+      
+    } else {
+      
+      if ( gotFix ) {
+        // Just lost the fix
+        gotFix = false;
+      }
+    }
   }
   
 }
@@ -120,7 +139,8 @@ void gpsUpdate() {
 void displayUpdate( bool fix, nmea_float_t speed ) {
 
   // Check for screen update
-  if (millis() - displayTimer > DISPLAY_INTERVAL_MS) {
+  unsigned long m = millis();
+  if (m - displayTimer > DISPLAY_INTERVAL_MS) {
     displayTimer = millis(); 
 
     display.clearDisplay();
@@ -129,17 +149,39 @@ void displayUpdate( bool fix, nmea_float_t speed ) {
     display.setCursor(0,0);
 
     if (fix) {
-      display.print( "SOG: " );
-      display.println(speed );
-      if ( gotLogFileName ) {
-        display.print(logFileName);
+
+      if ( displayMode == DISPLAY_SOG ) {
+        
+        display.print( "SOG: " );
+        display.println(speed );
+        displayMode = DISPLAY_TIME_TO_LOG;
+        
+      } else if ( displayMode == DISPLAY_TIME_TO_LOG ) {
+
+        // Display a simple progress bar
+        display.println();
+        display.drawRect( 0, 0, 120, 7, SSD1306_WHITE );
+        int p = map( m - loggingTimer, 0, LOGGING_INTERVAL_MS, 0, 120 );
+        display.fillRect( 0, 1, p, 5, SSD1306_WHITE );
+         
+        displayMode = DISPLAY_SOG;
+        
+      } else {
+        
+        display.println();
       }
+      
     } else {
       display.println("NO FIX");      
-      if ( gotLogFileName ) {
-        display.print(logFileName);
-      }
+      displayMode = DISPLAY_SOG;
     }
+
+    // Last line is always the log file if there is a fix
+    if ( gotLogFileName && fix ) {
+      display.print(logFileName);
+    }
+
+    // Update the display
     display.display();
     
   }
