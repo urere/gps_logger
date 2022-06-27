@@ -91,6 +91,32 @@ void ledOff( uint32_t led ) {
   digitalWrite( led, LOW );
 }
 
+void gpsUpdate() {
+  
+  // Check for new sentance
+  if (gps.newNMEAreceived()) {
+    
+    if (!gps.parse(gps.lastNMEA())) { 
+      ledOn( RED_LED );
+      return; 
+    }
+    ledOff( RED_LED );
+    
+    if ( gps.fix ) {
+
+      // Update log file name
+      sprintf( logFileName, "%2.2d%2.2d%2.2d.log", gps.year, gps.month, gps.day );
+      gotLogFileName = true;
+
+      // Need to store the last RMS sentance so it can be logged
+      if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
+        lastRMC = gps.lastNMEA();
+      }  
+    }      
+  }
+  
+}
+
 void displayUpdate( bool fix, nmea_float_t speed ) {
 
   // Check for screen update
@@ -149,30 +175,24 @@ void logUpdate() {
 
 void loop() // run over and over again
 {
+  // Read available byte
   gps.read();
-  if (gps.newNMEAreceived()) {
-    
-    if (!gps.parse(gps.lastNMEA())) { 
-      ledOn( RED_LED );
-      return; 
-    }
-    ledOff( RED_LED );
-    
-    if ( gps.fix ) {
 
-      // Update log file name
-      sprintf( logFileName, "%2.2d%2.2d%2.2d.log", gps.year, gps.month, gps.day );
-      gotLogFileName = true;
+  // Update information from GPS
+  gpsUpdate();
+  
+  // Read available byte
+  gps.read();
 
-      // Need to store the last RMS sentance so it can be logged
-      if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
-        lastRMC = gps.lastNMEA();
-      }  
-    }      
-  }
-
+  // Update display
   displayUpdate( gps.fix, gps.speed );
 
+  // Read available byte
+  gps.read();
+
+  // Update log
   logUpdate();
   
+  // Read available byte
+  gps.read();
 }
