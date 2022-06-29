@@ -117,6 +117,8 @@ void gpsUpdate() {
       // Need to store the last RMS sentance so it can be logged
       if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
         lastRMC = gps.lastNMEA();
+        // Remove checksum (*nn) and cr/lf
+        lastRMC[String(lastRMC).length()-5] = (char) 0;
       }
 
       if ( !gotFix ) {
@@ -178,7 +180,11 @@ void displayUpdate( bool fix, nmea_float_t speed ) {
 
     // Last line is always the log file if there is a fix
     if ( gotLogFileName && fix ) {
-      display.print(logFileName);
+      if ( sdCardAvailable ) {
+          display.print(logFileName);
+      } else {
+          display.print("NO CARD");
+      }
     }
 
     // Update the display
@@ -202,7 +208,7 @@ void logUpdate() {
       // Actually write the log file entry
        File logFile = SD.open(logFileName, FILE_WRITE);
        if ( logFile ) {
-         logFile.print( lastRMC );
+         logFile.println( lastRMC );
          logFile.close();
        }
        lastRMC = NULL;
