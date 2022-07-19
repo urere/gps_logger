@@ -29,7 +29,7 @@ unsigned long displayTimer = millis();
 unsigned long loggingTimer = millis();
 bool sdCardAvailable = false;
 bool gotFix = false;
-char *lastRMC = NULL;
+char lastRMC[MAXLINELENGTH+1] = {0};
 bool gotLogFileName = false;
 char logFileName[13];
 int displayMode = DISPLAY_SOG;
@@ -98,11 +98,15 @@ void ledOff( uint32_t led ) {
 }
 
 void gpsUpdate() {
+
+  char *pLastNMEA;
   
   // Check for new sentance
   if (gps.newNMEAreceived()) {
-    
-    if (!gps.parse(gps.lastNMEA())) { 
+
+    // Get last sentance and attempt to parse it
+    pLastNMEA = gps.lastNMEA();
+    if (!gps.parse(pLastNMEA)) { 
       ledOn( RED_LED );
       return; 
     }
@@ -116,9 +120,13 @@ void gpsUpdate() {
 
       // Need to store the last RMS sentance so it can be logged
       if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
-        lastRMC = gps.lastNMEA();
         // Remove checksum (*nn) and cr/lf
-        lastRMC[String(lastRMC).length()-5] = (char) 0;
+        String lastNMEA = String(pLastNMEA);
+        int ck = lastNMEA.lastIndexOf('*');
+        if ( ck > 0 ) {
+          lastNMEA.remove(ck);
+          lastNMEA.toCharArray(lastRMC, MAXLINELENGTH+1);
+        }
       }
 
       if ( !gotFix ) {
@@ -201,7 +209,7 @@ void logUpdate() {
     loggingTimer = millis();
 
     if ( sdCardAvailable ) {
-      if ( lastRMC != NULL ) {
+      if ( lastRMC[0] != 0 ) {
       
        ledOn( GREEN_LED );
 
@@ -211,7 +219,7 @@ void logUpdate() {
          logFile.println( lastRMC );
          logFile.close();
        }
-       lastRMC = NULL;
+       lastRMC[0] = 0;
     
        ledOff( GREEN_LED );
       }
