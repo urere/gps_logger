@@ -5,6 +5,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <SD.h>
+#include <SerialCommand.h>
 
 // Hardware connections
 #define GPS_SERIAL Serial1
@@ -42,6 +43,7 @@ char logFileName[13];
 int displayMode = DISPLAY_SOG;
 
 // Admin mode variables
+SerialCommand serialCommands;
 
 /**
  * Setup
@@ -101,7 +103,7 @@ void determineMode() {
   } else {
     mode = ADMIN_MODE;
   }
-  
+
 }
 
 void ledOn( uint32_t led ) {
