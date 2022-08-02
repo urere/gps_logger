@@ -63,7 +63,7 @@ void logMode_gpsUpdate() {
     if ( gps.fix ) {
 
       // Update log file name
-      sprintf( logFileName, "%2.2d%2.2d%2.2d.log", gps.day, gps.month, gps.year );
+      sprintf( logFileName, "%2.2d%2.2d%2.2d%s", gps.day, gps.month, gps.year, LOG_FILE_EXT );
       gotLogFileName = true;
 
       // Need to store the last RMS sentance so it can be logged

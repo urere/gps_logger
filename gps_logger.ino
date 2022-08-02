@@ -27,6 +27,8 @@
 #define DISPLAY_SOG 1
 #define DISPLAY_TIME_TO_LOG 2
 
+#define LOG_FILE_EXT ".LOG"
+
 // Common variables
 int mode = LOG_MODE;
 Adafruit_GPS gps(&GPS_SERIAL);

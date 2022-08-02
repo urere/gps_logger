@@ -72,7 +72,13 @@ void adminMode_list() {
     File entry =  root.openNextFile();
     while ( entry != NULL ) {
       if ( !entry.isDirectory() ) {
-        adminMode_sendRespLine( entry.name() );
+        // Remove any file extension
+        String logName = String(entry.name());
+        int ext = logName.lastIndexOf('.');
+        if ( ext > 0 ) {
+          logName.remove(ext);
+        }        
+        adminMode_sendRespLine( (char *) logName.c_str() );
       }
       entry =  root.openNextFile();
     }
@@ -101,8 +107,12 @@ void adminMode_get() {
 
     if ( pArg != NULL ) {
 
+      // Add file extension
+      String logFileName = String(pArg);
+      logFileName.concat(LOG_FILE_EXT); 
+
       // Attempt to open the log file
-      File logFile = SD.open(pArg);
+      File logFile = SD.open((char *) logFileName.c_str());
       if ( logFile != NULL ) {
 
         adminMode_sendRespStart();
@@ -171,11 +181,20 @@ void adminMode_delete() {
     pArg = serialCommands.next();
 
     if ( pArg != NULL ) {
-      adminMode_sendRespStart();
-      adminMode_sendRespLine( "DELETE command executed" );
-      adminMode_sendResp( "  LOG:" );
-      adminMode_sendRespLine( pArg );
-      adminMode_sendRespEnd();
+
+      // Add file extension
+      String logFileName = String(pArg);
+      logFileName.concat(LOG_FILE_EXT);
+      
+      // Attempt to delete the file
+      if ( SD.remove(logFileName) == 1 ) {
+        adminMode_sendRespStart();
+        adminMode_sendRespLine( "DELETE=<LOG>: DELETED" );
+        adminMode_sendRespEnd();
+      } else {
+        adminMode_sendRespError( "DELETE=<LOG>: DELETE FAILED" );
+      }
+      
     } else {
       adminMode_sendRespError( "DELETE=<LOG>: LOG MISSING" );
     }
@@ -195,7 +214,30 @@ void adminMode_deleteAll() {
     adminMode_displayMsg( "DELETEALL" );
 
     adminMode_sendRespStart();
-    adminMode_sendRespLine( "DELETEALL command executed" );
+
+    // Just scan the root directory for log files
+    File root = SD.open("/");
+    File entry =  root.openNextFile();
+    bool deleted = true;
+    while ( (entry != NULL) && (deleted) ) {
+
+      
+      if ( !entry.isDirectory() ) {
+        String logName = String(entry.name());
+        if ( SD.remove(logName.c_str()) ) {
+          logName.concat(" DELETED");
+          deleted = true;
+          // Rewind to get the next available file
+          root.rewindDirectory();
+        } else {
+          logName.concat(" NOT DELETED");
+          deleted = false;
+        }
+        adminMode_sendRespLine( (char *) logName.c_str() );
+      }
+      entry =  root.openNextFile();
+    }
+
     adminMode_sendRespEnd();
 
     adminMode_displayWaitingMsg();
