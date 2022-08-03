@@ -63,16 +63,15 @@ void logMode_gpsUpdate() {
     if ( gps.fix ) {
 
       // Update log file name
-      sprintf( logFileName, "%2.2d%2.2d%2.2d%s", gps.day, gps.month, gps.year, LOG_FILE_EXT );
+      sprintf( logFileName, "%2.2d-%2.2d-%2.2d", gps.day, gps.month, gps.year );
       gotLogFileName = true;
 
       // Need to store the last RMS sentance so it can be logged
       if ( strcmp( gps.lastSentence, "RMC" ) == 0 ) {
-        // Remove checksum (*nn) and cr/lf
+        // Verify checksum (*nn) is present
         String lastNMEA = String(pLastNMEA);
         int ck = lastNMEA.lastIndexOf('*');
         if ( ck > 0 ) {
-          lastNMEA.remove(ck);
           lastNMEA.toCharArray(lastRMC, MAXLINELENGTH+1);
         }
       }
@@ -168,10 +167,12 @@ void logMode_logUpdate() {
       
        ledOn( GREEN_LED );
 
-      // Actually write the log file entry
-       File logFile = SD.open(logFileName, FILE_WRITE);
+       // Actually write the log file entry
+       String fullLogFileName = logFileName;
+       fullLogFileName.concat( LOG_FILE_EXT );
+       File logFile = SD.open(fullLogFileName, FILE_WRITE);
        if ( logFile ) {
-         logFile.println( lastRMC );
+         logFile.print( lastRMC );
          logFile.close();
        }
        lastRMC[0] = 0;

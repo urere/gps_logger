@@ -95,7 +95,6 @@ void adminMode_list() {
 */
 void adminMode_get() {
 
-
   if ( adminMode_checkCardAvailable() ) {
 
     adminMode_displayMsg( "GET" );
@@ -152,11 +151,54 @@ void adminMode_getGPX() {
     pArg = serialCommands.next();
 
     if ( pArg != NULL ) {
-      adminMode_sendRespStart();
-      adminMode_sendRespLine( "GETGPX command executed" );
-      adminMode_sendResp( "  LOG:" );
-      adminMode_sendRespLine( pArg );
-      adminMode_sendRespEnd();
+
+      // Add file extension
+      String logFileName = String(pArg);
+      logFileName.concat(LOG_FILE_EXT); 
+
+      // Attempt to open the log file
+      File logFile = SD.open((char *) logFileName.c_str());
+      if ( logFile != NULL ) {
+
+        adminMode_sendRespStart();
+
+        gpx_writeStart(pArg);
+
+        // Read the log file, one line at a time
+        String logLine = "";
+        while (logFile.available()) {
+          char c = logFile.read();
+          if ( c == '\n' ) {
+            
+            // End of line, process this line
+            if ( gpsLog.parse((char *) logLine.c_str()) ) {
+
+              // Output a track point
+              sprintf( timestampBuffer, "20%2.2d-%2.2d-%2.2dT%2.2d%2.2d%2.2dZ", gpsLog.year, gpsLog.month, gpsLog.day, gpsLog.hour, gpsLog.minute, gpsLog.seconds );
+              gpx_writeTrackPoint( timestampBuffer, gpsLog.latitudeDegrees, gpsLog.longitudeDegrees,gpsLog.speed, gpsLog.angle );              
+
+            } else {
+
+              // Output a comment for the parse error
+              gpx_writeParseErrorComment( logLine.c_str() );
+            }
+            
+            // Start next line
+            logLine = "";
+            
+          } else if ( c != '\r' ) {
+            logLine.concat(c);
+          }
+        }
+        logFile.close();
+        
+        gpx_writeEnd();
+        
+        adminMode_sendRespEnd();
+        
+      } else {
+        adminMode_sendRespError( "UNABLE TO OPEN LOG FILE" );
+      }
     } else {
       adminMode_sendRespError( "GETGPX=<LOG>: LOG MISSING" );
     }

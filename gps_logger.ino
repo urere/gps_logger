@@ -41,11 +41,13 @@ unsigned long loggingTimer = millis();
 bool gotFix = false;
 char lastRMC[MAXLINELENGTH+1] = {0};
 bool gotLogFileName = false;
-char logFileName[13];
+char logFileName[16];
+char timestampBuffer[32];
 int displayMode = DISPLAY_SOG;
 
 // Admin mode variables
 SerialCommand serialCommands;
+Adafruit_GPS gpsLog;
 
 /**
  * Setup
@@ -105,7 +107,6 @@ void determineMode() {
   } else {
     mode = ADMIN_MODE;
   }
-
 }
 
 void ledOn( uint32_t led ) {
