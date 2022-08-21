@@ -174,7 +174,7 @@ void adminMode_getGPX() {
             if ( gpsLog.parse((char *) logLine.c_str()) ) {
 
               // Output a track point
-              sprintf( timestampBuffer, "20%2.2d-%2.2d-%2.2dT%2.2d%2.2d%2.2dZ", gpsLog.year, gpsLog.month, gpsLog.day, gpsLog.hour, gpsLog.minute, gpsLog.seconds );
+              sprintf( timestampBuffer, "20%2.2d-%2.2d-%2.2dT%2.2d:%2.2d:%2.2dZ", gpsLog.year, gpsLog.month, gpsLog.day, gpsLog.hour, gpsLog.minute, gpsLog.seconds );
               gpx_writeTrackPoint( timestampBuffer, gpsLog.latitudeDegrees, gpsLog.longitudeDegrees,gpsLog.speed, gpsLog.angle );              
 
             } else {
